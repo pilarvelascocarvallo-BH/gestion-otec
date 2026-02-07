@@ -2,18 +2,36 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Gestión otec big human</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Big human - Gestión OTEC</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700&family=Playfair+Display:ital,wght@1,700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        serif: ['Playfair Display', 'serif'],
+                    }
+                }
+            }
+        }
+    </script>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        .loading-dots:after { content: ' .'; animation: dots 1.5s steps(5, end) infinite; }
+        @keyframes dots { 0%, 20% { color: rgba(0,0,0,0); text-shadow: .2em 0 0 rgba(0,0,0,0), .4em 0 0 rgba(0,0,0,0); } 40% { color: #3b82f6; text-shadow: .2em 0 0 rgba(0,0,0,0), .4em 0 0 rgba(0,0,0,0); } 60% { text-shadow: .2em 0 0 #3b82f6, .4em 0 0 rgba(0,0,0,0); } 80%, 100% { text-shadow: .2em 0 0 #3b82f6, .4em 0 0 #3b82f6; } }
+    </style>
 </head>
-<body class="bg-slate-50 text-slate-800">
+<body class="bg-slate-50 text-slate-900 font-sans">
     <div id="root"></div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, signInWithRedirect, getRedirectResult, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCHjfRYIpXuAjuLesHyozbX8l2XwkifGQU",
@@ -28,7 +46,7 @@
         const auth = getAuth(app);
         const provider = new GoogleAuthProvider();
         
-        window.fb = { auth, provider, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut };
+        window.fb = { auth, provider, signInWithPopup, onAuthStateChanged, signOut };
     </script>
 
     <script type="text/babel">
@@ -40,47 +58,41 @@
             const [cargando, setCargando] = useState(true);
 
             useEffect(() => {
-                // Función silenciosa para detectar si ya volvimos de Google
-                const verificarRetorno = async () => {
-                    try {
-                        const resultado = await window.fb.getRedirectResult(window.fb.auth);
-                        if (resultado?.user) {
-                            console.log("Sesión recuperada");
-                        }
-                    } catch (e) { console.error(e); }
-                };
-                verificarRetorno();
-
-                // Escuchador constante de la sesión
                 const desuscribir = window.fb.onAuthStateChanged(window.fb.auth, (u) => {
-                    if (u) {
-                        const email = u.email.toLowerCase();
-                        if (PERMITIDOS.includes(email)) {
-                            setUsuario(u);
-                        } else {
-                            alert("Correo no autorizado");
-                            window.fb.signOut(window.fb.auth);
-                        }
+                    if (u && PERMITIDOS.includes(u.email.toLowerCase())) {
+                        setUsuario(u);
                     }
                     setCargando(false);
                 });
                 return () => desuscribir();
             }, []);
 
+            const handleLogin = async () => {
+                try {
+                    await window.fb.signInWithPopup(window.fb.auth, window.fb.provider);
+                } catch (e) {
+                    alert("Error al intentar abrir la ventana de Google. Verifica si el navegador bloqueó la ventana emergente.");
+                }
+            };
+
             if (cargando) return (
-                <div className="h-screen flex items-center justify-center bg-white italic text-blue-600 animate-pulse font-serif text-xl">
-                    Iniciando sistema Big human...
+                <div className="h-screen flex flex-col items-center justify-center bg-white">
+                    <div className="w-16 h-1 bg-blue-100 rounded-full overflow-hidden mb-4">
+                        <div className="w-1/2 h-full bg-blue-600 animate-[move_1.5s_infinite_linear]"></div>
+                    </div>
+                    <p className="font-serif italic text-xl text-slate-400 loading-dots">Iniciando Big human</p>
+                    <style>{`@keyframes move { from { transform: translateX(-100%); } to { transform: translateX(200%); } }`}</style>
                 </div>
             );
 
             if (!usuario) return (
-                <div className="h-screen flex items-center justify-center bg-slate-900 px-6">
-                    <div className="bg-white p-10 rounded-[40px] shadow-2xl text-center max-w-sm w-full border-b-8 border-blue-600">
-                        <h1 className="text-3xl font-black mb-2 italic text-slate-900 tracking-tighter">Big human</h1>
-                        <p className="text-slate-400 text-xs mb-8 font-bold uppercase tracking-widest">Gestión OTEC</p>
+                <div className="h-screen flex items-center justify-center bg-slate-50 px-6">
+                    <div className="bg-white p-12 rounded-[3rem] shadow-[0_20px_50px_rgba(0,0,0,0.05)] text-center max-w-sm w-full border border-slate-100">
+                        <h1 className="text-4xl font-serif italic text-slate-900 mb-2 tracking-tight">Big human</h1>
+                        <p className="text-slate-400 text-xs mb-10 font-medium uppercase tracking-[0.2em]">Gestión de OTEC</p>
                         <button 
-                            onClick={() => window.fb.signInWithRedirect(window.fb.auth, window.fb.provider)}
-                            className="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-xl shadow-blue-200"
+                            onClick={handleLogin}
+                            className="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 active:scale-95"
                         >
                             Entrar al sistema
                         </button>
@@ -89,36 +101,34 @@
             );
 
             return (
-                <div className="min-h-screen flex">
-                    {/* Barra lateral */}
-                    <aside className="w-64 bg-slate-900 text-white p-8 flex flex-col">
-                        <h2 className="text-2xl font-bold italic mb-10 text-blue-400">Big human</h2>
-                        <nav className="flex-1 space-y-4 text-sm font-medium">
-                            <div className="text-blue-600 bg-white p-3 rounded-xl">Panel principal</div>
-                            <div className="text-slate-400 p-3 hover:text-white cursor-pointer">Gestión de clientes</div>
-                            <div className="text-slate-400 p-3 hover:text-white cursor-pointer">Reportería SGC</div>
+                <div className="min-h-screen flex bg-white font-sans">
+                    <aside className="w-72 bg-slate-900 text-white p-10 flex flex-col shadow-2xl">
+                        <h2 className="text-2xl font-serif italic mb-12 text-blue-400">Big human</h2>
+                        <nav className="flex-1 space-y-6">
+                            <div className="text-blue-400 font-bold border-l-2 border-blue-400 pl-4">Panel principal</div>
+                            <div className="text-slate-500 pl-4 hover:text-white cursor-pointer transition">Gestión de clientes</div>
+                            <div className="text-slate-500 pl-4 hover:text-white cursor-pointer transition text-amber-500/50">Reportería SGC</div>
                         </nav>
                         <div className="pt-8 border-t border-slate-800">
-                            <p className="text-[10px] text-slate-500 mb-4 truncate">{usuario.email}</p>
-                            <button onClick={() => window.fb.signOut(window.fb.auth)} className="text-xs underline text-slate-400 hover:text-white">Cerrar sesión</button>
+                            <p className="text-[10px] text-slate-500 mb-4 truncate font-mono">{usuario.email}</p>
+                            <button onClick={() => window.fb.signOut(window.fb.auth)} className="text-xs underline text-slate-500 hover:text-white">Cerrar sesión</button>
                         </div>
                     </aside>
 
-                    {/* Contenido principal */}
-                    <main className="flex-1 p-12">
-                        <div className="bg-white p-12 rounded-[50px] shadow-sm border border-slate-200 border-t-8 border-blue-600">
-                            <h1 className="text-4xl font-black italic text-slate-900 mb-4 tracking-tight">Bienvenida al sistema</h1>
-                            <p className="text-slate-500 mb-8 max-w-md leading-relaxed">
-                                Hola <strong>{usuario.displayName}</strong>. Has ingresado con éxito al sistema central del Organismo Técnico de Capacitación (OTEC) Big human.
+                    <main className="flex-1 p-16">
+                        <div className="max-w-3xl">
+                            <h1 className="text-5xl font-serif italic text-slate-900 mb-6">Bienvenida, {usuario.displayName.split(' ')[0]}.</h1>
+                            <p className="text-xl text-slate-400 font-light leading-relaxed mb-10">
+                                El sistema del Organismo Técnico de Capacitación (OTEC) está listo para operar.
                             </p>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="p-6 bg-blue-50 rounded-3xl border border-blue-100">
-                                    <p className="text-blue-800 font-bold mb-1 italic">Conexión activa</p>
-                                    <p className="text-xs text-blue-600">Servidores de Firebase listos.</p>
+                            <div className="grid grid-cols-2 gap-8">
+                                <div className="p-8 bg-slate-50 rounded-[2rem] border border-slate-100 group hover:border-blue-200 transition">
+                                    <p className="text-slate-900 font-bold mb-2">Estado del servidor</p>
+                                    <p className="text-sm text-blue-500 font-medium">Conectado a Firebase</p>
                                 </div>
-                                <div className="p-6 bg-green-50 rounded-3xl border border-green-100">
-                                    <p className="text-green-800 font-bold mb-1 italic">Identidad validada</p>
-                                    <p className="text-xs text-green-600">Acceso concedido para OTEC.</p>
+                                <div className="p-8 bg-slate-50 rounded-[2rem] border border-slate-100">
+                                    <p className="text-slate-900 font-bold mb-2">Sesión activa</p>
+                                    <p className="text-sm text-green-500 font-medium">Identidad verificada</p>
                                 </div>
                             </div>
                         </div>
