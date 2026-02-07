@@ -14,7 +14,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getAuth, signInWithRedirect, getRedirectResult, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -31,7 +31,7 @@
         const db = getFirestore(app);
         const provider = new GoogleAuthProvider();
 
-        window.fb = { auth, db, provider, signInWithPopup, onAuthStateChanged, signOut, collection, addDoc, getDocs };
+        window.fb = { auth, db, provider, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut, collection, addDoc, getDocs };
     </script>
 
     <script type="text/babel">
@@ -44,12 +44,22 @@
             const [view, setView] = useState('inicio');
 
             useEffect(() => {
+                // Función para procesar el regreso de Google
+                const handleRedirect = async () => {
+                    try {
+                        await window.fb.getRedirectResult(window.fb.auth);
+                    } catch (error) {
+                        console.error("Error en retorno:", error);
+                    }
+                };
+                handleRedirect();
+
                 const unsubscribe = window.fb.onAuthStateChanged(window.fb.auth, (u) => {
                     if (u) {
                         if (ALLOWED_EMAILS.includes(u.email.toLowerCase())) {
                             setUser(u);
                         } else {
-                            alert("Acceso denegado: Correo no autorizado.");
+                            alert("Correo no autorizado.");
                             window.fb.signOut(window.fb.auth);
                         }
                     }
@@ -58,33 +68,27 @@
                 return () => unsubscribe();
             }, []);
 
-            const handleLogin = async () => {
-                try {
-                    await window.fb.signInWithPopup(window.fb.auth, window.fb.provider);
-                } catch (error) {
-                    console.error(error);
-                    alert("Error de seguridad. Por favor, asegúrate de que pilarvelascocarvallo-bh.github.io esté en la lista de dominios de Firebase.");
-                }
+            const handleLogin = () => {
+                window.fb.signInWithRedirect(window.fb.auth, window.fb.provider);
             };
 
             if (loading) return (
-                <div className="h-screen flex items-center justify-center italic text-slate-500">
-                    Cargando Big human...
+                <div className="h-screen flex items-center justify-center italic text-slate-500 font-serif">
+                    Validando credenciales Big human...
                 </div>
             );
 
             if (!user) return (
                 <div className="h-screen flex items-center justify-center bg-slate-900 px-6">
-                    <div className="bg-white p-10 rounded-3xl shadow-2xl text-center max-w-sm w-full">
-                        <h1 className="text-3xl font-bold mb-2 italic">Big human</h1>
-                        <p className="text-slate-400 text-sm mb-8 underline decoration-slate-200">Gestión de otec</p>
+                    <div className="bg-white p-10 rounded-3xl shadow-2xl text-center max-w-sm w-full border-t-4 border-blue-600">
+                        <h1 className="text-3xl font-bold mb-2 italic tracking-tight">Big human</h1>
+                        <p className="text-slate-400 text-sm mb-8">Sistema de gestión OTEC</p>
                         <button 
                             onClick={handleLogin}
-                            className="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-200"
+                            className="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-lg active:scale-95"
                         >
-                            Entrar con google
+                            Entrar al sistema
                         </button>
-                        <p className="mt-6 text-[10px] text-slate-400 uppercase tracking-widest">Acceso restringido</p>
                     </div>
                 </div>
             );
@@ -92,42 +96,13 @@
             return (
                 <div className="flex min-h-screen flex-col md:flex-row">
                     <aside className="w-full md:w-72 bg-slate-900 text-white p-8 flex flex-col">
-                        <h2 className="text-2xl font-bold italic mb-12">Big human</h2>
+                        <h2 className="text-2xl font-bold italic mb-10 tracking-tighter">Big human</h2>
                         <nav className="flex-1 space-y-3">
-                            <button onClick={() => setView('inicio')} className={`w-full text-left p-4 rounded-xl transition ${view === 'inicio' ? 'bg-blue-600' : 'hover:bg-slate-800'}`}>Panel principal</button>
-                            <button onClick={() => setView('clientes')} className={`w-full text-left p-4 rounded-xl transition ${view === 'clientes' ? 'bg-blue-600' : 'hover:bg-slate-800'}`}>Clientes y otic</button>
-                            <button onClick={() => setView('sgc')} className={`w-full text-left p-4 rounded-xl transition ${view === 'sgc' ? 'bg-amber-600' : 'hover:bg-slate-800 text-amber-400'}`}>Reportería sgc</button>
+                            <button onClick={() => setView('inicio')} className={`w-full text-left p-4 rounded-xl transition ${view === 'inicio' ? 'bg-blue-600 font-bold' : 'hover:bg-slate-800'}`}>Panel principal</button>
+                            <button onClick={() => setView('clientes')} className={`w-full text-left p-4 rounded-xl transition ${view === 'clientes' ? 'bg-blue-600 font-bold' : 'hover:bg-slate-800'}`}>Clientes y OTIC</button>
+                            <button onClick={() => setView('sgc')} className={`w-full text-left p-4 rounded-xl transition ${view === 'sgc' ? 'bg-amber-600 font-bold' : 'hover:bg-slate-800 text-amber-400'}`}>Reportería SGC</button>
                         </nav>
-                        <div className="mt-auto pt-10 border-t border-slate-800">
-                            <p className="text-xs text-slate-500 mb-4">{user.email}</p>
-                            <button onClick={() => window.fb.signOut(window.fb.auth)} className="text-slate-400 text-xs underline hover:text-white">Cerrar sesión</button>
-                        </div>
-                    </aside>
-
-                    <main className="flex-1 p-8 md:p-16 overflow-y-auto">
-                        <h2 className="text-3xl font-bold mb-8 text-slate-800">
-                            {view === 'inicio' && "Bienvenida al sistema"}
-                            {view === 'clientes' && "Gestión de clientes"}
-                            {view === 'sgc' && "Reportería sgc (Calidad)"}
-                        </h2>
-                        
-                        <div className="bg-white p-10 rounded-3xl shadow-sm border border-slate-100">
-                            {view === 'inicio' && (
-                                <div className="text-center py-20">
-                                    <div className="text-6xl mb-6">🚀</div>
-                                    <p className="text-slate-500 italic">Selecciona un módulo en el menú para comenzar a trabajar.</p>
-                                </div>
-                            )}
-                            {view === 'clientes' && <p className="italic text-slate-400">Módulo de carga de clientes en desarrollo...</p>}
-                            {view === 'sgc' && <p className="italic text-amber-600">Módulo de cumplimiento normativo nch 2728...</p>}
-                        </div>
-                    </main>
-                </div>
-            );
-        }
-
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
-    </script>
-</body>
-</html>
+                        <div className="mt-auto pt-8 border-t border-slate-800">
+                            <p className="text-[10px] text-slate-500 mb-2 uppercase tracking-widest font-bold">Usuario</p>
+                            <p className="text-xs text-blue-400 mb-4 truncate">{user.email}</p>
+                            <button onClick={() => window.fb.signOut(window.fb.auth)} className="text-slate-400 text
