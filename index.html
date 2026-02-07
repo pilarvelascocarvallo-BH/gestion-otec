@@ -2,23 +2,24 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Gestión otec big human</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Big human - Gestión otec</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
-<body class="bg-gray-50">
+<body class="bg-slate-50 text-slate-900">
     <div id="root"></div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, signInWithRedirect, GoogleAuthProvider, getRedirectResult, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCHjfRYIpXuAjuLesHyozbX8l2XwkifGQU",
-            authDomain: "gestion-otec-big-human.firebaseapp.com", // Mantenemos este que es el oficial
+            authDomain: "gestion-otec-big-human.firebaseapp.com",
             projectId: "gestion-otec-big-human",
             storageBucket: "gestion-otec-big-human.firebasestorage.app",
             messagingSenderId: "757850811764",
@@ -27,9 +28,10 @@
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
+        const db = getFirestore(app);
         const provider = new GoogleAuthProvider();
 
-        window.fb = { auth, provider, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut };
+        window.fb = { auth, db, provider, signInWithPopup, onAuthStateChanged, signOut, collection, addDoc, getDocs };
     </script>
 
     <script type="text/babel">
@@ -39,49 +41,87 @@
         function App() {
             const [user, setUser] = useState(null);
             const [loading, setLoading] = useState(true);
+            const [view, setView] = useState('inicio');
 
             useEffect(() => {
-                // Revisar si el usuario ya está conectado
                 const unsubscribe = window.fb.onAuthStateChanged(window.fb.auth, (u) => {
-                    if (u && ALLOWED_EMAILS.includes(u.email)) {
-                        setUser(u);
-                    } else if (u) {
-                        alert("Correo no autorizado.");
-                        window.fb.signOut(window.fb.auth);
+                    if (u) {
+                        if (ALLOWED_EMAILS.includes(u.email.toLowerCase())) {
+                            setUser(u);
+                        } else {
+                            alert("Acceso denegado: Correo no autorizado.");
+                            window.fb.signOut(window.fb.auth);
+                        }
                     }
                     setLoading(false);
                 });
                 return () => unsubscribe();
             }, []);
 
-            const login = () => {
-                // Cambiamos a Redirect que es más estable para GitHub
-                window.fb.signInWithRedirect(window.fb.auth, window.fb.provider);
+            const handleLogin = async () => {
+                try {
+                    await window.fb.signInWithPopup(window.fb.auth, window.fb.provider);
+                } catch (error) {
+                    console.error(error);
+                    alert("Error de seguridad. Por favor, asegúrate de que pilarvelascocarvallo-bh.github.io esté en la lista de dominios de Firebase.");
+                }
             };
 
-            if (loading) return <div className="h-screen flex items-center justify-center italic">Validando acceso...</div>;
+            if (loading) return (
+                <div className="h-screen flex items-center justify-center italic text-slate-500">
+                    Cargando Big human...
+                </div>
+            );
 
             if (!user) return (
-                <div className="h-screen flex items-center justify-center bg-slate-900">
-                    <div className="bg-white p-10 rounded-3xl text-center shadow-2xl">
-                        <h1 className="text-2xl font-bold mb-6 italic text-slate-800">Big human</h1>
-                        <button onClick={login} className="bg-blue-600 text-white px-10 py-3 rounded-xl font-bold hover:bg-blue-700 transition">
-                            Entrar al sistema
+                <div className="h-screen flex items-center justify-center bg-slate-900 px-6">
+                    <div className="bg-white p-10 rounded-3xl shadow-2xl text-center max-w-sm w-full">
+                        <h1 className="text-3xl font-bold mb-2 italic">Big human</h1>
+                        <p className="text-slate-400 text-sm mb-8 underline decoration-slate-200">Gestión de otec</p>
+                        <button 
+                            onClick={handleLogin}
+                            className="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-200"
+                        >
+                            Entrar con google
                         </button>
+                        <p className="mt-6 text-[10px] text-slate-400 uppercase tracking-widest">Acceso restringido</p>
                     </div>
                 </div>
             );
 
             return (
-                <div className="p-10">
-                    <h1 className="text-3xl font-bold italic mb-4">¡Bienvenida Pilar!</h1>
-                    <p className="text-gray-600 mb-8 font-medium">El sistema de gestión de Big human está conectado.</p>
-                    <div className="bg-white border border-gray-200 p-8 rounded-2xl shadow-sm inline-block">
-                        <p className="text-sm text-gray-500 mb-2 font-semibold uppercase tracking-wider">Usuario activo:</p>
-                        <p className="text-lg text-slate-800">{user.email}</p>
-                    </div>
-                    <br/>
-                    <button onClick={() => window.fb.signOut(window.fb.auth)} className="mt-10 text-red-500 text-sm font-bold underline">Cerrar sesión</button>
+                <div className="flex min-h-screen flex-col md:flex-row">
+                    <aside className="w-full md:w-72 bg-slate-900 text-white p-8 flex flex-col">
+                        <h2 className="text-2xl font-bold italic mb-12">Big human</h2>
+                        <nav className="flex-1 space-y-3">
+                            <button onClick={() => setView('inicio')} className={`w-full text-left p-4 rounded-xl transition ${view === 'inicio' ? 'bg-blue-600' : 'hover:bg-slate-800'}`}>Panel principal</button>
+                            <button onClick={() => setView('clientes')} className={`w-full text-left p-4 rounded-xl transition ${view === 'clientes' ? 'bg-blue-600' : 'hover:bg-slate-800'}`}>Clientes y otic</button>
+                            <button onClick={() => setView('sgc')} className={`w-full text-left p-4 rounded-xl transition ${view === 'sgc' ? 'bg-amber-600' : 'hover:bg-slate-800 text-amber-400'}`}>Reportería sgc</button>
+                        </nav>
+                        <div className="mt-auto pt-10 border-t border-slate-800">
+                            <p className="text-xs text-slate-500 mb-4">{user.email}</p>
+                            <button onClick={() => window.fb.signOut(window.fb.auth)} className="text-slate-400 text-xs underline hover:text-white">Cerrar sesión</button>
+                        </div>
+                    </aside>
+
+                    <main className="flex-1 p-8 md:p-16 overflow-y-auto">
+                        <h2 className="text-3xl font-bold mb-8 text-slate-800">
+                            {view === 'inicio' && "Bienvenida al sistema"}
+                            {view === 'clientes' && "Gestión de clientes"}
+                            {view === 'sgc' && "Reportería sgc (Calidad)"}
+                        </h2>
+                        
+                        <div className="bg-white p-10 rounded-3xl shadow-sm border border-slate-100">
+                            {view === 'inicio' && (
+                                <div className="text-center py-20">
+                                    <div className="text-6xl mb-6">🚀</div>
+                                    <p className="text-slate-500 italic">Selecciona un módulo en el menú para comenzar a trabajar.</p>
+                                </div>
+                            )}
+                            {view === 'clientes' && <p className="italic text-slate-400">Módulo de carga de clientes en desarrollo...</p>}
+                            {view === 'sgc' && <p className="italic text-amber-600">Módulo de cumplimiento normativo nch 2728...</p>}
+                        </div>
+                    </main>
                 </div>
             );
         }
