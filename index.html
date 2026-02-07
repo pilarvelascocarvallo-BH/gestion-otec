@@ -2,13 +2,13 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Big human - Gestión OTEC</title>
+    <title>Gestión otec big human</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
-<body class="bg-slate-900 text-white">
+<body class="bg-slate-50 text-slate-800">
     <div id="root"></div>
 
     <script type="module">
@@ -27,7 +27,7 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const provider = new GoogleAuthProvider();
-
+        
         window.fb = { auth, provider, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut };
     </script>
 
@@ -40,26 +40,25 @@
             const [cargando, setCargando] = useState(true);
 
             useEffect(() => {
-                const inicializar = async () => {
+                // Función silenciosa para detectar si ya volvimos de Google
+                const verificarRetorno = async () => {
                     try {
-                        // Captura el resultado después de volver de Google
-                        const result = await window.fb.getRedirectResult(window.fb.auth);
-                        if (result?.user) {
-                            console.log("Usuario detectado por redirección");
+                        const resultado = await window.fb.getRedirectResult(window.fb.auth);
+                        if (resultado?.user) {
+                            console.log("Sesión recuperada");
                         }
-                    } catch (error) {
-                        alert("Error de Firebase: " + error.message);
-                    }
+                    } catch (e) { console.error(e); }
                 };
-                inicializar();
+                verificarRetorno();
 
+                // Escuchador constante de la sesión
                 const desuscribir = window.fb.onAuthStateChanged(window.fb.auth, (u) => {
                     if (u) {
-                        console.log("Email detectado:", u.email);
-                        if (PERMITIDOS.includes(u.email.toLowerCase())) {
+                        const email = u.email.toLowerCase();
+                        if (PERMITIDOS.includes(email)) {
                             setUsuario(u);
                         } else {
-                            alert("Correo " + u.email + " no autorizado.");
+                            alert("Correo no autorizado");
                             window.fb.signOut(window.fb.auth);
                         }
                     }
@@ -68,18 +67,21 @@
                 return () => desuscribir();
             }, []);
 
-            const login = () => {
-                window.fb.signInWithRedirect(window.fb.auth, window.fb.provider);
-            };
-
-            if (cargando) return <div className="h-screen flex items-center justify-center font-serif italic text-blue-400 text-xl animate-pulse">Iniciando sistema Big human...</div>;
+            if (cargando) return (
+                <div className="h-screen flex items-center justify-center bg-white italic text-blue-600 animate-pulse font-serif text-xl">
+                    Iniciando sistema Big human...
+                </div>
+            );
 
             if (!usuario) return (
                 <div className="h-screen flex items-center justify-center bg-slate-900 px-6">
                     <div className="bg-white p-10 rounded-[40px] shadow-2xl text-center max-w-sm w-full border-b-8 border-blue-600">
-                        <h1 className="text-3xl font-black mb-2 italic text-slate-900">Big human</h1>
+                        <h1 className="text-3xl font-black mb-2 italic text-slate-900 tracking-tighter">Big human</h1>
                         <p className="text-slate-400 text-xs mb-8 font-bold uppercase tracking-widest">Gestión OTEC</p>
-                        <button onClick={login} className="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-xl shadow-blue-200">
+                        <button 
+                            onClick={() => window.fb.signInWithRedirect(window.fb.auth, window.fb.provider)}
+                            className="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-xl shadow-blue-200"
+                        >
                             Entrar al sistema
                         </button>
                     </div>
@@ -87,16 +89,40 @@
             );
 
             return (
-                <div className="p-10 text-center animate-in fade-in duration-1000">
-                    <h1 className="text-4xl font-bold italic mb-6">Acceso exitoso</h1>
-                    <div className="bg-white p-10 rounded-[40px] shadow-2xl inline-block text-slate-900 border-t-8 border-green-500">
-                        <p className="text-2xl font-bold mb-2">Bienvenida, {usuario.displayName}</p>
-                        <p className="text-slate-500 mb-8 italic">Organismo Técnico de Capacitación (OTEC) Big human</p>
-                        <div className="bg-green-100 p-4 rounded-2xl text-green-700 font-bold mb-6">
-                            Sistema validado y listo
+                <div className="min-h-screen flex">
+                    {/* Barra lateral */}
+                    <aside className="w-64 bg-slate-900 text-white p-8 flex flex-col">
+                        <h2 className="text-2xl font-bold italic mb-10 text-blue-400">Big human</h2>
+                        <nav className="flex-1 space-y-4 text-sm font-medium">
+                            <div className="text-blue-600 bg-white p-3 rounded-xl">Panel principal</div>
+                            <div className="text-slate-400 p-3 hover:text-white cursor-pointer">Gestión de clientes</div>
+                            <div className="text-slate-400 p-3 hover:text-white cursor-pointer">Reportería SGC</div>
+                        </nav>
+                        <div className="pt-8 border-t border-slate-800">
+                            <p className="text-[10px] text-slate-500 mb-4 truncate">{usuario.email}</p>
+                            <button onClick={() => window.fb.signOut(window.fb.auth)} className="text-xs underline text-slate-400 hover:text-white">Cerrar sesión</button>
                         </div>
-                        <button onClick={() => window.fb.signOut(window.fb.auth)} className="text-slate-400 text-xs underline">Cerrar sesión segura</button>
-                    </div>
+                    </aside>
+
+                    {/* Contenido principal */}
+                    <main className="flex-1 p-12">
+                        <div className="bg-white p-12 rounded-[50px] shadow-sm border border-slate-200 border-t-8 border-blue-600">
+                            <h1 className="text-4xl font-black italic text-slate-900 mb-4 tracking-tight">Bienvenida al sistema</h1>
+                            <p className="text-slate-500 mb-8 max-w-md leading-relaxed">
+                                Hola <strong>{usuario.displayName}</strong>. Has ingresado con éxito al sistema central del Organismo Técnico de Capacitación (OTEC) Big human.
+                            </p>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="p-6 bg-blue-50 rounded-3xl border border-blue-100">
+                                    <p className="text-blue-800 font-bold mb-1 italic">Conexión activa</p>
+                                    <p className="text-xs text-blue-600">Servidores de Firebase listos.</p>
+                                </div>
+                                <div className="p-6 bg-green-50 rounded-3xl border border-green-100">
+                                    <p className="text-green-800 font-bold mb-1 italic">Identidad validada</p>
+                                    <p className="text-xs text-green-600">Acceso concedido para OTEC.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </main>
                 </div>
             );
         }
