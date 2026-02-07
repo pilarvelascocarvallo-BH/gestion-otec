@@ -2,20 +2,18 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Big human - Gestión otec</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
-<body class="bg-slate-50 text-slate-900">
+<body class="bg-slate-900 text-white">
     <div id="root"></div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, signInWithRedirect, getRedirectResult, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCHjfRYIpXuAjuLesHyozbX8l2XwkifGQU",
@@ -28,81 +26,69 @@
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
-        const db = getFirestore(app);
         const provider = new GoogleAuthProvider();
+        // ESTA LINEA ES LA CLAVE:
+        provider.setCustomParameters({ prompt: 'select_account' });
 
-        window.fb = { auth, db, provider, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut, collection, addDoc, getDocs };
+        window.fb = { auth, provider, signInWithPopup, onAuthStateChanged, signOut };
     </script>
 
     <script type="text/babel">
         const { useState, useEffect } = React;
-        const ALLOWED_EMAILS = ['pvelasco@bighuman.cl', 'mschmied@bighuman.cl', 'coordinacion@bighuman.cl'];
+        const ALLOWED = ['pvelasco@bighuman.cl', 'mschmied@bighuman.cl', 'coordinacion@bighuman.cl'];
 
         function App() {
             const [user, setUser] = useState(null);
             const [loading, setLoading] = useState(true);
-            const [view, setView] = useState('inicio');
 
             useEffect(() => {
-                // Función para procesar el regreso de Google
-                const handleRedirect = async () => {
-                    try {
-                        await window.fb.getRedirectResult(window.fb.auth);
-                    } catch (error) {
-                        console.error("Error en retorno:", error);
-                    }
-                };
-                handleRedirect();
-
-                const unsubscribe = window.fb.onAuthStateChanged(window.fb.auth, (u) => {
-                    if (u) {
-                        if (ALLOWED_EMAILS.includes(u.email.toLowerCase())) {
-                            setUser(u);
-                        } else {
-                            alert("Correo no autorizado.");
-                            window.fb.signOut(window.fb.auth);
-                        }
+                return window.fb.onAuthStateChanged(window.fb.auth, (u) => {
+                    if (u && ALLOWED.includes(u.email.toLowerCase())) {
+                        setUser(u);
+                    } else if (u) {
+                        alert("Acceso denegado");
+                        window.fb.signOut(window.fb.auth);
                     }
                     setLoading(false);
                 });
-                return () => unsubscribe();
             }, []);
 
-            const handleLogin = () => {
-                window.fb.signInWithRedirect(window.fb.auth, window.fb.provider);
+            const login = async () => {
+                try {
+                    await window.fb.signInWithPopup(window.fb.auth, window.fb.provider);
+                } catch (e) {
+                    alert("Error de seguridad: Si esto persiste, abre la página en Modo Incógnito.");
+                }
             };
 
-            if (loading) return (
-                <div className="h-screen flex items-center justify-center italic text-slate-500 font-serif">
-                    Validando credenciales Big human...
-                </div>
-            );
+            if (loading) return <div className="h-screen flex items-center justify-center">Cargando...</div>;
 
             if (!user) return (
-                <div className="h-screen flex items-center justify-center bg-slate-900 px-6">
-                    <div className="bg-white p-10 rounded-3xl shadow-2xl text-center max-w-sm w-full border-t-4 border-blue-600">
-                        <h1 className="text-3xl font-bold mb-2 italic tracking-tight">Big human</h1>
-                        <p className="text-slate-400 text-sm mb-8">Sistema de gestión OTEC</p>
-                        <button 
-                            onClick={handleLogin}
-                            className="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-lg active:scale-95"
-                        >
-                            Entrar al sistema
+                <div className="h-screen flex flex-col items-center justify-center space-y-6">
+                    <h1 className="text-4xl font-bold italic text-blue-400 font-serif">Big human</h1>
+                    <div className="bg-white p-8 rounded-3xl shadow-2xl text-center max-w-sm">
+                        <p className="text-slate-800 mb-6 font-medium">Gestión de OTEC</p>
+                        <button onClick={login} className="bg-blue-600 text-white px-10 py-3 rounded-xl font-bold w-full hover:bg-blue-700">
+                            Entrar con Google
                         </button>
                     </div>
                 </div>
             );
 
             return (
-                <div className="flex min-h-screen flex-col md:flex-row">
-                    <aside className="w-full md:w-72 bg-slate-900 text-white p-8 flex flex-col">
-                        <h2 className="text-2xl font-bold italic mb-10 tracking-tighter">Big human</h2>
-                        <nav className="flex-1 space-y-3">
-                            <button onClick={() => setView('inicio')} className={`w-full text-left p-4 rounded-xl transition ${view === 'inicio' ? 'bg-blue-600 font-bold' : 'hover:bg-slate-800'}`}>Panel principal</button>
-                            <button onClick={() => setView('clientes')} className={`w-full text-left p-4 rounded-xl transition ${view === 'clientes' ? 'bg-blue-600 font-bold' : 'hover:bg-slate-800'}`}>Clientes y OTIC</button>
-                            <button onClick={() => setView('sgc')} className={`w-full text-left p-4 rounded-xl transition ${view === 'sgc' ? 'bg-amber-600 font-bold' : 'hover:bg-slate-800 text-amber-400'}`}>Reportería SGC</button>
-                        </nav>
-                        <div className="mt-auto pt-8 border-t border-slate-800">
-                            <p className="text-[10px] text-slate-500 mb-2 uppercase tracking-widest font-bold">Usuario</p>
-                            <p className="text-xs text-blue-400 mb-4 truncate">{user.email}</p>
-                            <button onClick={() => window.fb.signOut(window.fb.auth)} className="text-slate-400 text
+                <div className="p-10">
+                    <h1 className="text-2xl font-bold italic mb-6">Panel Big human</h1>
+                    <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700">
+                        <p className="text-green-400 font-bold underline decoration-white">● Sistema conectado</p>
+                        <p className="mt-2 text-sm text-slate-300">Bienvenida: {user.displayName}</p>
+                    </div>
+                    <button onClick={() => window.fb.signOut(window.fb.auth)} className="mt-10 text-xs text-slate-500 underline">Cerrar sesión</button>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
