@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Big Human - Gestión OTEC</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700&family=Playfair+Display:ital,wght@1,700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -12,7 +12,6 @@
                 extend: {
                     fontFamily: {
                         sans: ['Inter', 'sans-serif'],
-                        serif: ['Playfair Display', 'serif'],
                     }
                 }
             }
@@ -21,10 +20,6 @@
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <style>
-        .loading-dots:after { content: ' .'; animation: dots 1.5s steps(5, end) infinite; }
-        @keyframes dots { 0%, 20% { color: rgba(0,0,0,0); text-shadow: .2em 0 0 rgba(0,0,0,0), .4em 0 0 rgba(0,0,0,0); } 40% { color: #3b82f6; text-shadow: .2em 0 0 rgba(0,0,0,0), .4em 0 0 rgba(0,0,0,0); } 60% { text-shadow: .2em 0 0 #3b82f6, .4em 0 0 rgba(0,0,0,0); } 80%, 100% { text-shadow: .2em 0 0 #3b82f6, .4em 0 0 #3b82f6; } }
-    </style>
 </head>
 <body class="bg-slate-50 text-slate-900 font-sans">
     <div id="root"></div>
@@ -71,28 +66,25 @@
                 try {
                     await window.fb.signInWithPopup(window.fb.auth, window.fb.provider);
                 } catch (e) {
-                    alert("Por favor, permite las ventanas emergentes (pop-ups) en tu navegador para ingresar.");
+                    alert("Error: Verifica que las ventanas emergentes estén permitidas.");
                 }
             };
 
             if (cargando) return (
-                <div className="h-screen flex flex-col items-center justify-center bg-white">
-                    <div className="w-16 h-1 bg-blue-100 rounded-full overflow-hidden mb-4">
-                        <div className="w-1/2 h-full bg-blue-600 animate-[move_1.5s_infinite_linear]"></div>
-                    </div>
-                    <p className="font-serif italic text-xl text-slate-400 loading-dots">Iniciando Big Human</p>
-                    <style>{`@keyframes move { from { transform: translateX(-100%); } to { transform: translateX(200%); } }`}</style>
+                <div className="h-screen flex flex-col items-center justify-center bg-white text-slate-800">
+                    <div className="w-12 h-12 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin mb-4"></div>
+                    <p className="text-lg font-semibold tracking-tight">Iniciando Big Human...</p>
                 </div>
             );
 
             if (!usuario) return (
-                <div className="h-screen flex items-center justify-center bg-slate-50 px-6">
-                    <div className="bg-white p-12 rounded-[3rem] shadow-[0_20px_50px_rgba(0,0,0,0.05)] text-center max-w-sm w-full border border-slate-100">
-                        <h1 className="text-4xl font-serif italic text-slate-900 mb-2 tracking-tight">Big Human</h1>
-                        <p className="text-slate-400 text-xs mb-10 font-medium uppercase tracking-[0.2em]">Gestión de OTEC</p>
+                <div className="h-screen flex items-center justify-center bg-slate-100 px-6">
+                    <div className="bg-white p-12 rounded-[2.5rem] shadow-xl text-center max-w-sm w-full">
+                        <h1 className="text-4xl font-extrabold text-slate-900 mb-2 tracking-tighter">Big Human</h1>
+                        <p className="text-slate-400 text-xs mb-10 font-bold uppercase tracking-widest">Gestión de OTEC</p>
                         <button 
                             onClick={handleLogin}
-                            className="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 active:scale-95"
+                            className="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-lg active:scale-95"
                         >
                             Entrar al sistema
                         </button>
@@ -101,13 +93,13 @@
             );
 
             return (
-                <div className="min-h-screen flex bg-white font-sans">
+                <div className="min-h-screen flex bg-white">
                     <aside className="w-72 bg-slate-900 text-white p-10 flex flex-col shadow-2xl">
-                        <h2 className="text-2xl font-serif italic mb-12 text-blue-400">Big Human</h2>
+                        <h2 className="text-2xl font-bold mb-12 text-blue-400 tracking-tight">Big Human</h2>
                         <nav className="flex-1 space-y-6">
-                            <div className="text-blue-400 font-bold border-l-2 border-blue-400 pl-4">Panel principal</div>
+                            <div className="text-blue-400 font-bold border-l-4 border-blue-400 pl-4">Panel principal</div>
                             <div className="text-slate-500 pl-4 hover:text-white cursor-pointer transition">Gestión de clientes</div>
-                            <div className="text-slate-500 pl-4 hover:text-white cursor-pointer transition text-amber-500/50">Reportería SGC</div>
+                            <div className="text-slate-500 pl-4 hover:text-white cursor-pointer transition opacity-50">Reportería SGC</div>
                         </nav>
                         <div className="pt-8 border-t border-slate-800">
                             <p className="text-[10px] text-slate-500 mb-4 truncate font-mono">{usuario.email}</p>
@@ -115,20 +107,20 @@
                         </div>
                     </aside>
 
-                    <main className="flex-1 p-16 text-center md:text-left">
+                    <main className="flex-1 p-16">
                         <div className="max-w-3xl">
-                            <h1 className="text-5xl font-serif italic text-slate-900 mb-6 font-bold">Bienvenida, {usuario.displayName.split(' ')[0]}.</h1>
-                            <p className="text-xl text-slate-400 font-light leading-relaxed mb-10">
-                                El sistema del Organismo Técnico de Capacitación (OTEC) está listo para operar.
+                            <h1 className="text-5xl font-extrabold text-slate-900 mb-6 tracking-tight">Bienvenida, {usuario.displayName.split(' ')[0]}</h1>
+                            <p className="text-xl text-slate-500 font-light leading-relaxed mb-10">
+                                El sistema del Organismo Técnico de Capacitación (OTEC) está operativo.
                             </p>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <div className="p-8 bg-slate-50 rounded-[2rem] border border-slate-100 group hover:border-blue-200 transition">
-                                    <p className="text-slate-900 font-bold mb-2">Estado del servidor</p>
-                                    <p className="text-sm text-blue-500 font-medium italic">Conectado a Firebase</p>
+                            <div className="grid grid-cols-2 gap-8 text-center">
+                                <div className="p-8 bg-slate-50 rounded-3xl border border-slate-200">
+                                    <p className="text-slate-900 font-bold mb-1">Servidor</p>
+                                    <p className="text-sm text-blue-600 font-semibold">En línea</p>
                                 </div>
-                                <div className="p-8 bg-slate-50 rounded-[2rem] border border-slate-100">
-                                    <p className="text-slate-900 font-bold mb-2">Sesión activa</p>
-                                    <p className="text-sm text-green-500 font-medium italic">Identidad verificada</p>
+                                <div className="p-8 bg-slate-50 rounded-3xl border border-slate-200">
+                                    <p className="text-slate-900 font-bold mb-1">Usuario</p>
+                                    <p className="text-sm text-green-600 font-semibold">Validado</p>
                                 </div>
                             </div>
                         </div>
