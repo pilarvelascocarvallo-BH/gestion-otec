@@ -8,17 +8,17 @@
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
-<body class="bg-gray-50 text-gray-800">
+<body class="bg-gray-50">
     <div id="root"></div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getAuth, signInWithRedirect, GoogleAuthProvider, getRedirectResult, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCHjfRYIpXuAjuLesHyozbX8l2XwkifGQU",
-            authDomain: "gestion-otec-big-human.firebaseapp.com",
+            authDomain: "gestion-otec-big-human.firebaseapp.com", // Mantenemos este que es el oficial
             projectId: "gestion-otec-big-human",
             storageBucket: "gestion-otec-big-human.firebasestorage.app",
             messagingSenderId: "757850811764",
@@ -26,10 +26,10 @@
         };
 
         const app = initializeApp(firebaseConfig);
-        window.fb = { 
-            auth: getAuth(app), db: getFirestore(app), provider: new GoogleAuthProvider(),
-            signInWithPopup, signOut, collection, addDoc, getDocs, query, orderBy, onAuthStateChanged 
-        };
+        const auth = getAuth(app);
+        const provider = new GoogleAuthProvider();
+
+        window.fb = { auth, provider, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut };
     </script>
 
     <script type="text/babel">
@@ -38,15 +38,15 @@
 
         function App() {
             const [user, setUser] = useState(null);
-            const [view, setView] = useState('dashboard');
             const [loading, setLoading] = useState(true);
 
             useEffect(() => {
+                // Revisar si el usuario ya está conectado
                 const unsubscribe = window.fb.onAuthStateChanged(window.fb.auth, (u) => {
                     if (u && ALLOWED_EMAILS.includes(u.email)) {
                         setUser(u);
                     } else if (u) {
-                        alert("Correo no autorizado para Big human");
+                        alert("Correo no autorizado.");
                         window.fb.signOut(window.fb.auth);
                     }
                     setLoading(false);
@@ -54,99 +54,34 @@
                 return () => unsubscribe();
             }, []);
 
-            const login = async () => {
-                try {
-                    await window.fb.signInWithPopup(window.fb.auth, window.fb.provider);
-                } catch (e) {
-                    alert("Error de conexión: Revisa los dominios autorizados en Firebase.");
-                }
+            const login = () => {
+                // Cambiamos a Redirect que es más estable para GitHub
+                window.fb.signInWithRedirect(window.fb.auth, window.fb.provider);
             };
 
-            if (loading) return <div className="h-screen flex items-center justify-center italic">Cargando plataforma Big human...</div>;
+            if (loading) return <div className="h-screen flex items-center justify-center italic">Validando acceso...</div>;
 
             if (!user) return (
-                <div className="h-screen flex items-center justify-center bg-slate-900 px-4">
-                    <div className="bg-white p-10 rounded-3xl text-center shadow-2xl max-w-sm w-full">
-                        <h1 className="text-2xl font-bold mb-6 italic">Big human</h1>
-                        <p className="text-gray-500 mb-6 text-sm italic underline">Gestión de OTEC</p>
-                        <button onClick={login} className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition">Entrar con google</button>
+                <div className="h-screen flex items-center justify-center bg-slate-900">
+                    <div className="bg-white p-10 rounded-3xl text-center shadow-2xl">
+                        <h1 className="text-2xl font-bold mb-6 italic text-slate-800">Big human</h1>
+                        <button onClick={login} className="bg-blue-600 text-white px-10 py-3 rounded-xl font-bold hover:bg-blue-700 transition">
+                            Entrar al sistema
+                        </button>
                     </div>
                 </div>
             );
 
             return (
-                <div className="flex min-h-screen flex-col md:flex-row">
-                    <aside className="w-full md:w-64 bg-slate-900 text-white p-6">
-                        <h2 className="text-xl font-bold italic mb-10">Big human</h2>
-                        <nav className="space-y-2 text-sm">
-                            <button onClick={()=>setView('dashboard')} className={`w-full text-left p-3 rounded-lg ${view==='dashboard'?'bg-blue-600':'hover:bg-slate-800'}`}>Panel de control</button>
-                            <button onClick={()=>setView('clientes')} className={`w-full text-left p-3 rounded-lg ${view==='clientes'?'bg-blue-600':'hover:bg-slate-800'}`}>Gestión de clientes</button>
-                            <button onClick={()=>setView('sgc')} className={`w-full text-left p-3 rounded-lg ${view==='sgc'?'bg-blue-600 text-amber-400':'hover:bg-slate-800 text-amber-400'}`}>Reportería sgc</button>
-                        </nav>
-                        <button onClick={()=>window.fb.signOut(window.fb.auth)} className="mt-20 text-xs text-slate-500 hover:text-white">Cerrar sesión</button>
-                    </aside>
-
-                    <main className="flex-1 p-6 md:p-10 bg-gray-50 overflow-y-auto">
-                        <header className="mb-8 border-b border-gray-200 pb-4">
-                            <h1 className="text-2xl font-bold text-slate-800 capitalize">Operaciones: {view.replace('sgc', 'Reportería sgc')}</h1>
-                            <p className="text-sm text-gray-500 italic">Sesión de {user.displayName}</p>
-                        </header>
-
-                        {view === 'dashboard' && <Dashboard />}
-                        {view === 'clientes' && <ClientesForm />}
-                        {view === 'sgc' && <SGCForm />}
-                    </main>
-                </div>
-            );
-        }
-
-        // Vistas simplificadas para comenzar
-        function Dashboard() {
-            return (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                        <h3 className="text-slate-500 text-sm">Estado de conexión</h3>
-                        <p className="text-green-600 font-bold mt-2">● En línea</p>
+                <div className="p-10">
+                    <h1 className="text-3xl font-bold italic mb-4">¡Bienvenida Pilar!</h1>
+                    <p className="text-gray-600 mb-8 font-medium">El sistema de gestión de Big human está conectado.</p>
+                    <div className="bg-white border border-gray-200 p-8 rounded-2xl shadow-sm inline-block">
+                        <p className="text-sm text-gray-500 mb-2 font-semibold uppercase tracking-wider">Usuario activo:</p>
+                        <p className="text-lg text-slate-800">{user.email}</p>
                     </div>
-                </div>
-            );
-        }
-
-        function ClientesForm() {
-            return (
-                <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 max-w-4xl">
-                    <h3 className="font-bold mb-6 text-slate-700">Registro de nuevo cliente / otic</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                        <input className="border p-3 rounded-xl bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="RUT empresa" />
-                        <input className="border p-3 rounded-xl bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Razón social" />
-                        <input className="border p-3 rounded-xl bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Código sence" />
-                        <select className="border p-3 rounded-xl bg-gray-50 text-gray-500">
-                            <option>Modalidad de curso</option>
-                            <option>Presencial</option>
-                            <option>E-learning sincrónico</option>
-                        </select>
-                    </div>
-                    <button className="bg-slate-800 text-white px-8 py-3 rounded-xl hover:bg-slate-700 transition">Guardar datos</button>
-                </div>
-            );
-        }
-
-        function SGCForm() {
-            return (
-                <div className="bg-amber-50 p-8 rounded-2xl border border-amber-200 shadow-sm max-w-4xl">
-                    <h3 className="font-bold text-amber-800 mb-6">Control normativo nch 2728</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="flex flex-col gap-2">
-                            <label className="text-xs font-bold text-amber-700 uppercase">Datos del relator</label>
-                            <input className="border p-3 rounded-xl bg-white" placeholder="Nombre y rut" />
-                            <input className="border p-3 rounded-xl bg-white" placeholder="N° REUF" />
-                        </div>
-                        <div className="flex flex-col gap-2">
-                            <label className="text-xs font-bold text-amber-700 uppercase">Documentación</label>
-                            <input type="file" className="text-xs mt-2" />
-                            <p className="text-[10px] text-amber-600 italic">Permite subir cv y diplomas.</p>
-                        </div>
-                    </div>
+                    <br/>
+                    <button onClick={() => window.fb.signOut(window.fb.auth)} className="mt-10 text-red-500 text-sm font-bold underline">Cerrar sesión</button>
                 </div>
             );
         }
