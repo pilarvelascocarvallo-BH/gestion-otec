@@ -2,14 +2,13 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Big human - Gestión otec</title>
+    <title>Big human - Gestión OTEC</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
-<body class="bg-slate-900 text-white font-sans">
+<body class="bg-slate-900 text-white">
     <div id="root"></div>
 
     <script type="module">
@@ -28,64 +27,59 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const provider = new GoogleAuthProvider();
-        
+
         window.fb = { auth, provider, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut };
     </script>
 
     <script type="text/babel">
         const { useState, useEffect } = React;
-        const ALLOWED = ['pvelasco@bighuman.cl', 'mschmied@bighuman.cl', 'coordinacion@bighuman.cl'];
+        const PERMITIDOS = ['pvelasco@bighuman.cl', 'mschmied@bighuman.cl', 'coordinacion@bighuman.cl', 'pilarvelascocarvallo@gmail.com'];
 
         function App() {
-            const [user, setUser] = useState(null);
-            const [loading, setLoading] = useState(true);
+            const [usuario, setUsuario] = useState(null);
+            const [cargando, setCargando] = useState(true);
 
             useEffect(() => {
-                // 1. Procesar el regreso de Google
-                const checkLogin = async () => {
+                const inicializar = async () => {
                     try {
-                        await window.fb.getRedirectResult(window.fb.auth);
-                    } catch (e) {
-                        console.error("Error en retorno:", e);
+                        // Captura el resultado después de volver de Google
+                        const result = await window.fb.getRedirectResult(window.fb.auth);
+                        if (result?.user) {
+                            console.log("Usuario detectado por redirección");
+                        }
+                    } catch (error) {
+                        alert("Error de Firebase: " + error.message);
                     }
                 };
-                checkLogin();
+                inicializar();
 
-                // 2. Escuchar el estado de la sesión
-                const unsubscribe = window.fb.onAuthStateChanged(window.fb.auth, (u) => {
+                const desuscribir = window.fb.onAuthStateChanged(window.fb.auth, (u) => {
                     if (u) {
-                        if (ALLOWED.includes(u.email.toLowerCase())) {
-                            setUser(u);
+                        console.log("Email detectado:", u.email);
+                        if (PERMITIDOS.includes(u.email.toLowerCase())) {
+                            setUsuario(u);
                         } else {
-                            alert("Correo no autorizado para Big human");
+                            alert("Correo " + u.email + " no autorizado.");
                             window.fb.signOut(window.fb.auth);
                         }
                     }
-                    setLoading(false);
+                    setCargando(false);
                 });
-                return () => unsubscribe();
+                return () => desuscribir();
             }, []);
 
-            const handleLogin = () => {
-                // REDIRECCIÓN COMPLETA: Salta todos los bloqueos
+            const login = () => {
                 window.fb.signInWithRedirect(window.fb.auth, window.fb.provider);
             };
 
-            if (loading) return (
-                <div className="h-screen flex items-center justify-center italic text-blue-300">
-                    Sincronizando con Big human...
-                </div>
-            );
+            if (cargando) return <div className="h-screen flex items-center justify-center font-serif italic text-blue-400 text-xl animate-pulse">Iniciando sistema Big human...</div>;
 
-            if (!user) return (
-                <div className="h-screen flex items-center justify-center px-6">
+            if (!usuario) return (
+                <div className="h-screen flex items-center justify-center bg-slate-900 px-6">
                     <div className="bg-white p-10 rounded-[40px] shadow-2xl text-center max-w-sm w-full border-b-8 border-blue-600">
-                        <h1 className="text-3xl font-black mb-2 italic text-slate-900 tracking-tighter">Big human</h1>
+                        <h1 className="text-3xl font-black mb-2 italic text-slate-900">Big human</h1>
                         <p className="text-slate-400 text-xs mb-8 font-bold uppercase tracking-widest">Gestión OTEC</p>
-                        <button 
-                            onClick={handleLogin}
-                            className="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-xl active:scale-95"
-                        >
+                        <button onClick={login} className="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-xl shadow-blue-200">
                             Entrar al sistema
                         </button>
                     </div>
@@ -93,14 +87,16 @@
             );
 
             return (
-                <div className="p-10 text-center">
-                    <h1 className="text-4xl font-bold italic mb-4">¡Logrado!</h1>
-                    <div className="bg-blue-600 p-8 rounded-3xl inline-block shadow-2xl border-4 border-white">
-                        <p className="text-xl font-medium">Bienvenida, {user.displayName}</p>
-                        <p className="text-blue-200 text-sm mt-2 font-mono">{user.email}</p>
+                <div className="p-10 text-center animate-in fade-in duration-1000">
+                    <h1 className="text-4xl font-bold italic mb-6">Acceso exitoso</h1>
+                    <div className="bg-white p-10 rounded-[40px] shadow-2xl inline-block text-slate-900 border-t-8 border-green-500">
+                        <p className="text-2xl font-bold mb-2">Bienvenida, {usuario.displayName}</p>
+                        <p className="text-slate-500 mb-8 italic">Organismo Técnico de Capacitación (OTEC) Big human</p>
+                        <div className="bg-green-100 p-4 rounded-2xl text-green-700 font-bold mb-6">
+                            Sistema validado y listo
+                        </div>
+                        <button onClick={() => window.fb.signOut(window.fb.auth)} className="text-slate-400 text-xs underline">Cerrar sesión segura</button>
                     </div>
-                    <br/>
-                    <button onClick={() => window.fb.signOut(window.fb.auth)} className="mt-12 text-slate-500 underline text-xs">Cerrar sesión segura</button>
                 </div>
             );
         }
