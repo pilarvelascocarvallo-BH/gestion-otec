@@ -13,9 +13,10 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+        // Tu configuración oficial
         const firebaseConfig = {
             apiKey: "AIzaSyCHjfRYIpXuAjuLesHyozbX8l2XwkifGQU",
             authDomain: "gestion-otec-big-human.firebaseapp.com",
@@ -27,8 +28,10 @@
 
         const app = initializeApp(firebaseConfig);
         window.fb = { 
-            auth: getAuth(app), db: getFirestore(app), provider: new GoogleAuthProvider(),
-            signInWithPopup, signOut, collection, addDoc, getDocs, query, orderBy 
+            auth: getAuth(app), 
+            db: getFirestore(app), 
+            provider: new GoogleAuthProvider(),
+            signInWithPopup, signOut, collection, addDoc, onAuthStateChanged 
         };
     </script>
 
@@ -38,107 +41,51 @@
 
         function App() {
             const [user, setUser] = useState(null);
-            const [view, setView] = useState('dashboard');
-            const [loading, setLoading] = useState(false);
+            const [loading, setLoading] = useState(true);
+
+            useEffect(() => {
+                const unsubscribe = window.fb.onAuthStateChanged(window.fb.auth, (currentUser) => {
+                    if (currentUser && ALLOWED_EMAILS.includes(currentUser.email)) {
+                        setUser(currentUser);
+                    } else if (currentUser) {
+                        alert("Correo no autorizado");
+                        window.fb.signOut(window.fb.auth);
+                    }
+                    setLoading(false);
+                });
+                return () => unsubscribe();
+            }, []);
 
             const login = async () => {
                 try {
-                    const result = await window.fb.signInWithPopup(window.fb.auth, window.fb.provider);
-                    if (ALLOWED_EMAILS.includes(result.user.email)) {
-                        setUser(result.user);
-                    } else {
-                        alert("Acceso denegado: Solo correos autorizados.");
-                        window.fb.signOut(window.fb.auth);
-                    }
-                } catch (e) { alert("Error al iniciar sesión"); }
+                    await window.fb.signInWithPopup(window.fb.auth, window.fb.provider);
+                } catch (e) {
+                    console.error(e);
+                    alert("Error de conexión. Revisa que el dominio esté autorizado en Firebase.");
+                }
             };
+
+            if (loading) return <div className="h-screen flex items-center justify-center italic">Cargando sistema...</div>;
 
             if (!user) return (
-                <div className="h-screen flex items-center justify-center bg-slate-900 px-4">
+                <div className="h-screen flex items-center justify-center bg-slate-900">
                     <div className="bg-white p-10 rounded-3xl text-center shadow-2xl max-w-sm w-full">
                         <h1 className="text-2xl font-bold mb-6">Gestión otec big human</h1>
-                        <button onClick={login} className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition">Entrar con google</button>
+                        <button onClick={login} className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition">
+                            Entrar con google
+                        </button>
                     </div>
                 </div>
             );
 
             return (
-                <div className="flex min-h-screen flex-col md:flex-row">
-                    <aside className="w-full md:w-64 bg-slate-900 text-white p-6">
-                        <h2 className="text-xl font-bold italic mb-10">Big human</h2>
-                        <nav className="space-y-2">
-                            <button onClick={()=>setView('dashboard')} className={`w-full text-left p-3 rounded-lg ${view==='dashboard'?'bg-blue-600':'hover:bg-slate-800'}`}>Panel de control</button>
-                            <button onClick={()=>setView('clientes')} className={`w-full text-left p-3 rounded-lg ${view==='clientes'?'bg-blue-600':'hover:bg-slate-800'}`}>Clientes y cursos</button>
-                            <button onClick={()=>setView('sgc')} className={`w-full text-left p-3 rounded-lg ${view==='sgc'?'bg-blue-600 text-amber-400':'hover:bg-slate-800 text-amber-400'}`}>Reportería sgc</button>
-                        </nav>
-                        <button onClick={()=>window.fb.signOut(window.fb.auth)} className="mt-10 text-xs text-slate-500 hover:text-white">Cerrar sesión</button>
-                    </aside>
-
-                    <main className="flex-1 p-4 md:p-10">
-                        <header className="mb-8 border-b pb-4">
-                            <h1 className="text-2xl font-bold capitalize">{view.replace('sgc', 'Reportería sgc')}</h1>
-                            <p className="text-sm text-gray-500 italic">Bienvenida, {user.displayName}</p>
-                        </header>
-
-                        {view === 'dashboard' && <Dashboard />}
-                        {view === 'clientes' && <ClientesForm />}
-                        {view === 'sgc' && <SGCForm />}
-                    </main>
-                </div>
-            );
-        }
-
-        function Dashboard() {
-            return (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                        <h3 className="text-gray-500 text-sm">Cursos activos</h3>
-                        <p className="text-3xl font-bold">Actualizando...</p>
+                <div className="p-10 text-center">
+                    <h1 className="text-2xl font-bold mb-4 italic">Big human</h1>
+                    <p className="mb-6">Bienvenida, {user.displayName}</p>
+                    <div className="bg-green-100 p-6 rounded-2xl text-green-800">
+                        ¡Conexión exitosa! El sistema está listo para operar.
                     </div>
-                </div>
-            );
-        }
-
-        function ClientesForm() {
-            const [data, setData] = useState({ rut: '', nombre: '', otic: 'No', sence: '', modalidad: 'Presencial' });
-            
-            const guardar = async () => {
-                try {
-                    await window.fb.addDoc(window.fb.collection(window.fb.db, "clientes"), { ...data, fechaCreacion: new Date() });
-                    alert("Cliente y curso guardados con éxito.");
-                } catch (e) { alert("Error al guardar"); }
-            };
-
-            return (
-                <div className="bg-white p-6 rounded-2xl shadow-sm space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <input className="border p-2 rounded-lg" placeholder="RUT empresa" onChange={e=>setData({...data, rut: e.target.value})} />
-                        <input className="border p-2 rounded-lg" placeholder="Nombre cliente" onChange={e=>setData({...data, nombre: e.target.value})} />
-                        <input className="border p-2 rounded-lg" placeholder="Código sence" onChange={e=>setData({...data, sence: e.target.value})} />
-                        <select className="border p-2 rounded-lg" onChange={e=>setData({...data, modalidad: e.target.value})}>
-                            <option>Presencial</option>
-                            <option>E-learning sincrónico</option>
-                            <option>E-learning asincrónico</option>
-                        </select>
-                    </div>
-                    <button onClick={guardar} className="bg-slate-800 text-white px-6 py-2 rounded-xl">Guardar en base de datos</button>
-                </div>
-            );
-        }
-
-        function SGCForm() {
-            return (
-                <div className="bg-amber-50 p-6 rounded-2xl border border-amber-100 shadow-sm">
-                    <h3 className="font-bold text-amber-800 mb-4 font-bold">Datos del relator y documentos</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <input className="border p-2 rounded-lg bg-white" placeholder="Nombre relator" />
-                        <input className="border p-2 rounded-lg bg-white" placeholder="RUT relator" />
-                        <input className="border p-2 rounded-lg bg-white" placeholder="N° REUF" />
-                        <div className="flex flex-col gap-1">
-                            <label className="text-xs text-amber-700">Adjuntar CV (pdf)</label>
-                            <input type="file" className="text-xs" />
-                        </div>
-                    </div>
+                    <button onClick={() => window.fb.signOut(window.fb.auth)} className="mt-10 text-gray-500 underline text-sm">Cerrar sesión</button>
                 </div>
             );
         }
