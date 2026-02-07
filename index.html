@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Big human - Gestión OTEC</title>
+    <title>Big Human - Gestión OTEC</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700&family=Playfair+Display:ital,wght@1,700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -71,7 +71,7 @@
                 try {
                     await window.fb.signInWithPopup(window.fb.auth, window.fb.provider);
                 } catch (e) {
-                    alert("Error al intentar abrir la ventana de Google. Verifica si el navegador bloqueó la ventana emergente.");
+                    alert("Por favor, permite las ventanas emergentes (pop-ups) en tu navegador para ingresar.");
                 }
             };
 
@@ -80,7 +80,7 @@
                     <div className="w-16 h-1 bg-blue-100 rounded-full overflow-hidden mb-4">
                         <div className="w-1/2 h-full bg-blue-600 animate-[move_1.5s_infinite_linear]"></div>
                     </div>
-                    <p className="font-serif italic text-xl text-slate-400 loading-dots">Iniciando Big human</p>
+                    <p className="font-serif italic text-xl text-slate-400 loading-dots">Iniciando Big Human</p>
                     <style>{`@keyframes move { from { transform: translateX(-100%); } to { transform: translateX(200%); } }`}</style>
                 </div>
             );
@@ -88,7 +88,7 @@
             if (!usuario) return (
                 <div className="h-screen flex items-center justify-center bg-slate-50 px-6">
                     <div className="bg-white p-12 rounded-[3rem] shadow-[0_20px_50px_rgba(0,0,0,0.05)] text-center max-w-sm w-full border border-slate-100">
-                        <h1 className="text-4xl font-serif italic text-slate-900 mb-2 tracking-tight">Big human</h1>
+                        <h1 className="text-4xl font-serif italic text-slate-900 mb-2 tracking-tight">Big Human</h1>
                         <p className="text-slate-400 text-xs mb-10 font-medium uppercase tracking-[0.2em]">Gestión de OTEC</p>
                         <button 
                             onClick={handleLogin}
@@ -103,7 +103,7 @@
             return (
                 <div className="min-h-screen flex bg-white font-sans">
                     <aside className="w-72 bg-slate-900 text-white p-10 flex flex-col shadow-2xl">
-                        <h2 className="text-2xl font-serif italic mb-12 text-blue-400">Big human</h2>
+                        <h2 className="text-2xl font-serif italic mb-12 text-blue-400">Big Human</h2>
                         <nav className="flex-1 space-y-6">
                             <div className="text-blue-400 font-bold border-l-2 border-blue-400 pl-4">Panel principal</div>
                             <div className="text-slate-500 pl-4 hover:text-white cursor-pointer transition">Gestión de clientes</div>
@@ -115,20 +115,20 @@
                         </div>
                     </aside>
 
-                    <main className="flex-1 p-16">
+                    <main className="flex-1 p-16 text-center md:text-left">
                         <div className="max-w-3xl">
-                            <h1 className="text-5xl font-serif italic text-slate-900 mb-6">Bienvenida, {usuario.displayName.split(' ')[0]}.</h1>
+                            <h1 className="text-5xl font-serif italic text-slate-900 mb-6 font-bold">Bienvenida, {usuario.displayName.split(' ')[0]}.</h1>
                             <p className="text-xl text-slate-400 font-light leading-relaxed mb-10">
                                 El sistema del Organismo Técnico de Capacitación (OTEC) está listo para operar.
                             </p>
-                            <div className="grid grid-cols-2 gap-8">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 <div className="p-8 bg-slate-50 rounded-[2rem] border border-slate-100 group hover:border-blue-200 transition">
                                     <p className="text-slate-900 font-bold mb-2">Estado del servidor</p>
-                                    <p className="text-sm text-blue-500 font-medium">Conectado a Firebase</p>
+                                    <p className="text-sm text-blue-500 font-medium italic">Conectado a Firebase</p>
                                 </div>
                                 <div className="p-8 bg-slate-50 rounded-[2rem] border border-slate-100">
                                     <p className="text-slate-900 font-bold mb-2">Sesión activa</p>
-                                    <p className="text-sm text-green-500 font-medium">Identidad verificada</p>
+                                    <p className="text-sm text-green-500 font-medium italic">Identidad verificada</p>
                                 </div>
                             </div>
                         </div>
