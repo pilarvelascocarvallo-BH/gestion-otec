@@ -40,7 +40,6 @@
 
     <script type="text/babel">
         const { useState, useEffect } = React;
-        const PERMITIDOS = ['pvelasco@bighuman.cl', 'mschmied@bighuman.cl', 'coordinacion@bighuman.cl', 'pilarvelascocarvallo@gmail.com'];
 
         function App() {
             const [usuario, setUsuario] = useState(null);
@@ -55,7 +54,8 @@
                 procesar();
 
                 return window.fb.onAuthStateChanged(window.fb.auth, (u) => {
-                    if (u && PERMITIDOS.includes(u.email.toLowerCase())) {
+                    if (u) {
+                        // PUERTA ABIERTA TEMPORAL: Acepta cualquier correo para probar
                         setUsuario(u);
                     }
                     setCargando(false);
@@ -71,7 +71,7 @@
 
             if (!usuario) return (
                 <div className="h-screen flex items-center justify-center bg-slate-100 px-6">
-                    <div className="bg-white p-12 rounded-[2.5rem] shadow-xl text-center max-w-sm w-full">
+                    <div className="bg-white p-12 rounded-[2.5rem] shadow-xl text-center max-w-sm w-full border border-slate-200">
                         <h1 className="text-4xl font-extrabold text-slate-900 mb-2 tracking-tighter">Big Human</h1>
                         <p className="text-slate-400 text-xs mb-10 font-bold uppercase tracking-widest">Gestión de OTEC</p>
                         <button 
@@ -93,13 +93,13 @@
                             <div className="text-slate-500 pl-4 hover:text-white cursor-pointer transition">Gestión de clientes</div>
                             <div className="text-slate-500 pl-4 hover:text-white cursor-pointer transition">Reportería SGC</div>
                         </nav>
-                        <button onClick={() => window.fb.signOut(window.fb.auth)} className="text-xs underline text-slate-500 hover:text-white text-left">Cerrar sesión</button>
+                        <button onClick={() => window.fb.signOut(window.fb.auth)} className="text-xs underline text-slate-500 hover:text-white text-left mt-auto">Cerrar sesión</button>
                     </aside>
                     <main className="flex-1 p-16">
-                        <h1 className="text-5xl font-extrabold text-slate-900 mb-4 tracking-tight">Bienvenida, {usuario.displayName.split(' ')[0]}</h1>
-                        <p className="text-xl text-slate-500 font-light mb-10">Acceso correcto al Organismo Técnico de Capacitación (OTEC).</p>
-                        <div className="p-8 bg-green-50 rounded-3xl border border-green-100 text-green-700 font-bold italic">
-                            ✓ Sistema validado y operativo
+                        <h1 className="text-5xl font-extrabold text-slate-900 mb-4 tracking-tight">Bienvenida, {usuario.displayName || 'Pilar'}</h1>
+                        <p className="text-xl text-slate-500 font-light mb-10 italic">Acceso correcto. Tu correo es: {usuario.email}</p>
+                        <div className="p-8 bg-green-50 rounded-3xl border border-green-100 text-green-700 font-bold">
+                            ✓ Estás dentro del sistema de Big Human.
                         </div>
                     </main>
                 </div>
