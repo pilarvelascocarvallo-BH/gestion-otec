@@ -20,7 +20,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getAuth, signInWithRedirect, getRedirectResult, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCHjfRYIpXuAjuLesHyozbX8l2XwkifGQU",
@@ -35,50 +35,57 @@
         const auth = getAuth(app);
         const provider = new GoogleAuthProvider();
         
-        window.fb = { auth, provider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut };
+        window.fb = { auth, provider, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut };
     </script>
 
     <script type="text/babel">
         const { useState, useEffect } = React;
+        // Agregué todos tus correos posibles para que no haya margen de error
+        const PERMITIDOS = ['pvelasco@bighuman.cl', 'mschmied@bighuman.cl', 'coordinacion@bighuman.cl', 'pilarvelascocarvallo@gmail.com'];
 
         function App() {
             const [usuario, setUsuario] = useState(null);
             const [cargando, setCargando] = useState(true);
 
             useEffect(() => {
-                // Captura el login si viene de redirección
-                window.fb.getRedirectResult(window.fb.auth).catch(console.error);
+                const comprobarSesion = async () => {
+                    try {
+                        // Esto atrapa el resultado cuando vuelves de la página de Google
+                        await window.fb.getRedirectResult(window.fb.auth);
+                    } catch (e) {
+                        console.error("Error al volver:", e);
+                    }
+                };
+                comprobarSesion();
 
-                return window.fb.onAuthStateChanged(window.fb.auth, (u) => {
-                    setUsuario(u);
+                const desuscribir = window.fb.onAuthStateChanged(window.fb.auth, (u) => {
+                    if (u) {
+                        if (PERMITIDOS.includes(u.email.toLowerCase())) {
+                            setUsuario(u);
+                        } else {
+                            alert("El correo " + u.email + " no está en la lista de Big Human.");
+                            window.fb.signOut(window.fb.auth);
+                        }
+                    }
                     setCargando(false);
                 });
+                return () => desuscribir();
             }, []);
-
-            const intentarEntrar = async () => {
-                try {
-                    // Intento 1: Ventana emergente
-                    await window.fb.signInWithPopup(window.fb.auth, window.fb.provider);
-                } catch (e) {
-                    // Intento 2: Redirección (si el pop-up falla)
-                    window.fb.signInWithRedirect(window.fb.auth, window.fb.provider);
-                }
-            };
 
             if (cargando) return (
                 <div className="h-screen flex flex-col items-center justify-center bg-white">
-                    <div className="w-10 h-10 border-4 border-slate-100 border-t-blue-600 rounded-full animate-spin mb-4"></div>
-                    <p className="font-semibold text-slate-400">Iniciando Big Human...</p>
+                    <div className="w-12 h-12 border-4 border-slate-100 border-t-blue-600 rounded-full animate-spin mb-4"></div>
+                    <p className="text-lg font-bold text-slate-400">Cargando Big Human...</p>
                 </div>
             );
 
             if (!usuario) return (
-                <div className="h-screen flex items-center justify-center bg-slate-50 px-6">
-                    <div className="bg-white p-12 rounded-[2.5rem] shadow-xl text-center max-w-sm w-full border border-slate-100">
+                <div className="h-screen flex items-center justify-center bg-slate-100 px-6 font-sans">
+                    <div className="bg-white p-12 rounded-[3rem] shadow-2xl text-center max-w-sm w-full border border-slate-200">
                         <h1 className="text-4xl font-extrabold text-slate-900 mb-2 tracking-tighter">Big Human</h1>
-                        <p className="text-slate-400 text-xs mb-10 font-bold uppercase tracking-widest">Gestión de OTEC</p>
+                        <p className="text-slate-400 text-[10px] mb-10 font-black uppercase tracking-[0.3em]">Gestión de OTEC</p>
                         <button 
-                            onClick={intentarEntrar}
+                            onClick={() => window.fb.signInWithRedirect(window.fb.auth, window.fb.provider)}
                             className="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-lg active:scale-95"
                         >
                             Entrar al sistema
@@ -88,19 +95,25 @@
             );
 
             return (
-                <div className="min-h-screen flex bg-white">
-                    <aside className="w-64 bg-slate-900 text-white p-8 flex flex-col">
-                        <h2 className="text-2xl font-bold mb-10 text-blue-400">Big Human</h2>
-                        <nav className="flex-1 space-y-4">
-                            <div className="text-blue-400 border-l-4 border-blue-400 pl-4 font-bold">Panel principal</div>
-                            <div className="text-slate-500 pl-4 cursor-pointer hover:text-white">Gestión de clientes</div>
+                <div className="min-h-screen flex bg-white font-sans">
+                    <aside className="w-72 bg-slate-900 text-white p-10 flex flex-col shadow-2xl">
+                        <h2 className="text-2xl font-bold mb-12 text-blue-400 tracking-tight">Big Human</h2>
+                        <nav className="flex-1 space-y-6">
+                            <div className="text-blue-400 font-bold border-l-4 border-blue-400 pl-4">Panel principal</div>
+                            <div className="text-slate-500 pl-4 hover:text-white cursor-pointer transition">Gestión de clientes</div>
+                            <div className="text-slate-500 pl-4 hover:text-white cursor-pointer transition">Reportería SGC</div>
                         </nav>
-                        <button onClick={() => window.fb.signOut(window.fb.auth)} className="text-xs underline text-slate-500 hover:text-white text-left">Cerrar sesión</button>
+                        <div className="pt-8 border-t border-slate-800">
+                            <p className="text-[10px] text-slate-500 mb-4 truncate font-mono">{usuario.email}</p>
+                            <button onClick={() => window.fb.signOut(window.fb.auth)} className="text-xs underline text-slate-500 hover:text-white">Cerrar sesión</button>
+                        </div>
                     </aside>
+
                     <main className="flex-1 p-16">
-                        <h1 className="text-5xl font-extrabold text-slate-900 mb-6">Bienvenida, {usuario.displayName}</h1>
-                        <div className="p-8 bg-blue-50 rounded-3xl border border-blue-100">
-                            <p className="text-blue-800 font-bold italic">Acceso validado para {usuario.email}</p>
+                        <h1 className="text-5xl font-extrabold text-slate-900 mb-6 tracking-tight">Bienvenida, {usuario.displayName.split(' ')[0]}</h1>
+                        <p className="text-xl text-slate-400 font-light mb-10">Has ingresado correctamente al sistema de gestión.</p>
+                        <div className="p-10 bg-blue-50 rounded-[2.5rem] border border-blue-100 text-blue-800 font-bold italic">
+                            ✓ Todo listo para empezar.
                         </div>
                     </main>
                 </div>
