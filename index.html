@@ -20,7 +20,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, signInWithRedirect, getRedirectResult, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getAuth, setPersistence, browserLocalPersistence, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCHjfRYIpXuAjuLesHyozbX8l2XwkifGQU",
@@ -35,7 +35,10 @@
         const auth = getAuth(app);
         const provider = new GoogleAuthProvider();
         
-        window.fb = { auth, provider, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut };
+        // Forzamos al sistema a que use la memoria del navegador
+        setPersistence(auth, browserLocalPersistence);
+        
+        window.fb = { auth, provider, signInWithPopup, onAuthStateChanged, signOut };
     </script>
 
     <script type="text/babel">
@@ -46,26 +49,25 @@
             const [cargando, setCargando] = useState(true);
 
             useEffect(() => {
-                const procesar = async () => {
-                    try {
-                        await window.fb.getRedirectResult(window.fb.auth);
-                    } catch (e) { console.error(e); }
-                };
-                procesar();
-
+                // Escucha directa: si hay usuario, entra. Si no, espera.
                 return window.fb.onAuthStateChanged(window.fb.auth, (u) => {
-                    if (u) {
-                        // PUERTA ABIERTA TEMPORAL: Acepta cualquier correo para probar
-                        setUsuario(u);
-                    }
+                    setUsuario(u);
                     setCargando(false);
                 });
             }, []);
 
+            const entrar = async () => {
+                try {
+                    await window.fb.signInWithPopup(window.fb.auth, window.fb.provider);
+                } catch (e) {
+                    alert("Asegúrate de permitir las ventanas emergentes en tu navegador.");
+                }
+            };
+
             if (cargando) return (
-                <div className="h-screen flex flex-col items-center justify-center bg-white text-slate-800">
-                    <div className="w-12 h-12 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin mb-4"></div>
-                    <p className="text-lg font-semibold tracking-tight">Cargando Big Human...</p>
+                <div className="h-screen flex flex-col items-center justify-center bg-white">
+                    <div className="w-10 h-10 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin mb-4"></div>
+                    <p className="font-semibold text-slate-500">Iniciando Big Human...</p>
                 </div>
             );
 
@@ -75,8 +77,8 @@
                         <h1 className="text-4xl font-extrabold text-slate-900 mb-2 tracking-tighter">Big Human</h1>
                         <p className="text-slate-400 text-xs mb-10 font-bold uppercase tracking-widest">Gestión de OTEC</p>
                         <button 
-                            onClick={() => window.fb.signInWithRedirect(window.fb.auth, window.fb.provider)}
-                            className="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100"
+                            onClick={entrar}
+                            className="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-lg active:scale-95"
                         >
                             Entrar al sistema
                         </button>
@@ -86,20 +88,20 @@
 
             return (
                 <div className="min-h-screen flex bg-white">
-                    <aside className="w-72 bg-slate-900 text-white p-10 flex flex-col">
-                        <h2 className="text-2xl font-bold mb-12 text-blue-400 tracking-tight">Big Human</h2>
-                        <nav className="flex-1 space-y-6 font-medium">
+                    <aside className="w-64 bg-slate-900 text-white p-8 flex flex-col">
+                        <h2 className="text-2xl font-bold mb-10 text-blue-400">Big Human</h2>
+                        <nav className="flex-1 space-y-4 font-medium">
                             <div className="text-blue-400 border-l-4 border-blue-400 pl-4">Panel principal</div>
-                            <div className="text-slate-500 pl-4 hover:text-white cursor-pointer transition">Gestión de clientes</div>
-                            <div className="text-slate-500 pl-4 hover:text-white cursor-pointer transition">Reportería SGC</div>
+                            <div className="text-slate-500 pl-4">Gestión de clientes</div>
                         </nav>
                         <button onClick={() => window.fb.signOut(window.fb.auth)} className="text-xs underline text-slate-500 hover:text-white text-left mt-auto">Cerrar sesión</button>
                     </aside>
                     <main className="flex-1 p-16">
-                        <h1 className="text-5xl font-extrabold text-slate-900 mb-4 tracking-tight">Bienvenida, {usuario.displayName || 'Pilar'}</h1>
-                        <p className="text-xl text-slate-500 font-light mb-10 italic">Acceso correcto. Tu correo es: {usuario.email}</p>
-                        <div className="p-8 bg-green-50 rounded-3xl border border-green-100 text-green-700 font-bold">
-                            ✓ Estás dentro del sistema de Big Human.
+                        <h1 className="text-5xl font-extrabold text-slate-900 mb-4">Hola, {usuario.displayName}</h1>
+                        <p className="text-xl text-slate-500 font-light mb-8 italic">Acceso concedido para {usuario.email}</p>
+                        <div className="p-10 bg-blue-50 rounded-[2.5rem] border border-blue-100">
+                            <p className="text-blue-800 font-bold mb-2">¡Lo logramos!</p>
+                            <p className="text-blue-600">Este es el panel administrativo de tu OTEC.</p>
                         </div>
                     </main>
                 </div>
